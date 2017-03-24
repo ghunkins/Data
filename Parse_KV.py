@@ -45,12 +45,7 @@ def averageDecibels(data):
     for sample in range(2048):
         _sum = 0
         for logchirp in data:
-            #print(logchirp)
-            #print(logchirp[0])
-            #print(logchirp[sample-1][1])
-            #print(logchirp[i][sample-1])
             _sum += logchirp[sample][1]
-        #print("Appending: ", _sum / 10)
         average.append(_sum / 10)               # assuming num files = 10
     return average
 
@@ -61,9 +56,7 @@ def averageDecibels(data):
 def returnFrequencies():
     f = []
     for sample in range(2048):
-        #print(HRTF_head[0][sample-1][0])
         f.append(HRTF_head[0][sample][0])
-    #print(f)
     return f
 
 # returns a 2D list, inner lists are
@@ -86,11 +79,16 @@ def NormalizeList(arr):
 	total = 0
 	#calculate the mean value to offset by
 	for i in range(2048):
-		total += norm_val[i]
+		#norm_val[i] = 10**(norm_val[i]/20)
+		total += norm_val[i]  
+	# 	if (total == 0):
+	# 		total = norm_val[i]
+	# 	else:
+	# 		total *= norm_val[i]
 	mean = total/2048
 
 	for i in range(2048):
-		norm_val[i] = norm_val[i] - mean
+		norm_val[i] = norm_val[i] - mean		# change from '-' to '/' --> linear to log scale
 		#perform offset and convert to Gain from dBSPL
 		norm_val[i] = 10**(norm_val[i]/20)
 		
@@ -161,6 +159,11 @@ def plotBinVals(yVal, N):
 	plt.title("FFT Bin Gain")
 	plt.show()
 
+def generateTXT(name, arr):
+	bins = open(name, "w+")   # create file if doesn't exist
+	for bin in arr:
+		bins.write(str(bin) + '\n')
+	bins.close()
 
 def main():
     #parse("Mic_12Oct_dBSPL_chirp3.txt", "h")
@@ -178,7 +181,7 @@ def main():
 	plotFreqSpectrum(freq_list, averageMic,"Binaural Head w AMVR Design LogChirp Transfer Function", xaxis_label, "dBSPL")
 
 	
-#Generate normalized lists for Head, Mic and Differential
+	#Generate normalized lists for Head, Mic and Differential
 	Norm_head = NormalizeList(HRTF_head)
 	Norm_mic = NormalizeList(HRTF_mic)
 	plotFreqSpectrum(freq_list, Norm_head,"Normalized Head Plot", xaxis_label, "Gain (V/V)")
@@ -186,10 +189,11 @@ def main():
 	
 	#Calculate Head-Mic Difference
 	#Gain_needed = Head/Mic
-	Norm_HeadMic_diff = (np.array((Norm_head)) / np.array((Norm_mic))).tolist()
+	Norm_HeadMic_diff = (np.array((Norm_head)) / np.array((Norm_mic))).tolist()			
 	plotFreqSpectrum(freq_list, Norm_HeadMic_diff, "Head-Mic Gain Scaling/Restoration Plot", xaxis_label, "Gain (V/V)")
 	
 	bin_values = calcBins(Norm_HeadMic_diff, gN, gf_sample)
+	generateTXT("bins.txt", bin_values)
 	plotBinVals(bin_values, gN)
 	
 
